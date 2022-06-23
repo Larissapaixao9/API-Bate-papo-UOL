@@ -3,6 +3,7 @@ import dotenv from 'dotenv'
 import cors from "cors";
 import { MongoClient } from 'mongodb';
 import authSchema from './validation/validation_schema.js'
+import authSchema2 from './validation/validation_schema_2.js'
 import dayjs from 'dayjs'
 import customParseFormat from 'dayjs/plugin/customParseFormat.js';
 
@@ -82,6 +83,26 @@ app.post('/participants',async(req,res)=>{
             })
         }
      
+})
+
+app.get('/participants',(req,res)=>{
+    db.collection("users").find().toArray().then(item=>{
+        res.send(item).status(200)
+    })
+})
+
+app.post('/messages',async(req,res)=>{
+    const {to, text, type}=req.body;
+
+    try{
+        //validação dos dados:
+        const result2=await authSchema2.validateAsync(req.body)
+        console.log(result2)
+    }
+    catch(err){
+        res.status(422).send('erro na validação das mensagens');
+        console.log(err)
+    }
 })
 
 app.listen(5000)
