@@ -96,12 +96,14 @@ app.post('/messages',async(req,res)=>{
     const {to, text, type}=req.body;
     const { user }=req.headers
     let from_user;
-    db.collection("users").find().toArray().then(item=>{
-        verifyUser=item.find(element=>element.name===user)
+    await db.collection("users").find().toArray().then(item=>{
+        verifyUser=item.some(element=>element.name===user)
     })
 
-    if(verifyUser){
-        from_user=user
+    if(!verifyUser){
+       // from_user=user;
+         res.status(422).send("erro")
+         return;
     }
     try{
         //validação dos dados:
@@ -193,7 +195,7 @@ app.post('/status',async(req,res)=>{
         //caso o users esteja presente, realizamos a atualização com updateOne
         await db.collection("users").updateOne(
             {
-                _id:participants_array._id //sempre usar id
+                name:user //usar id?
             },
             {
                 $set: {lastStatus:Date.now() }
@@ -224,10 +226,36 @@ app.post('/status',async(req,res)=>{
 //     })
 
 // }, 15000);
-async function j(){
-    await db.collection("users").createIndex({"last":1}, {"expireAfterSeconds":5000})
 
+async function RemoveUser(){
+    const allUsers=await db.collection("users").find({}).toArray();
+    let right_now=Date.now();
+
+    try{
+        //armazena usuarios inativos na variavel offlineUser
+        const offlineUser=allUsers.filter((item)=>
+        
+        (right_now-item.lastStatus)>10000
+    )
+
+        //para cada usuario inativo, deletamos o usuario e enviamos a mensagem de saida
+    offlineUser.forEach(async user=>{
+        await db.collection("users").deleteOne({ id:user.id })
+        await db.collection("mensages").insertOne({
+            from: user.name,
+            to: 'Todos',
+            text: 'sai da sala...',
+            type:'status',
+            time:dayjs().locale('pt-br').format("hh:mm:ss")
+        })
+    })
+    }
+
+    catch(err){
+        console.log(err)
+    }
 }
 
+setInterval(RemoveUser, 15000);
 
 app.listen(5000)
